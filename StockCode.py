@@ -65,7 +65,50 @@ class IndiWindow(QMainWindow):
         ret = self.IndiTR.dynamicCall("SetQueryName(QString)","stock_mst")
         rqid = self.IndiTR.dynamicCall("RequestData()") # 데이터 요청
         self.rqidD[rqid] =  "stock_mst"
+
+    def GetDirectionalMovement(self,dicPreStockData,dicPostStockData):
+        tmpPDM = dicPostStockData['high'] - dicPreStockData['high']
+        tmpMDM = dicPreStockData['low'] - dicPostStockData['low']
+
+        tmpTop = dicPostStockData['low'] - dicPreStockData['high']
+        tmpLow = dicPreStockData['low'] - dicPostStockData['high']
         
+        if tmpTop > 0:
+            return tmpTop, 0
+        if tmpLow >0:
+            return 0, tmpLow
+
+        if (tmpPDM > 0) and (tmpMDM <=0):
+            PDM = tmpPDM
+            MDM = 0
+            return PDM, MDM
+
+        if (tmpPDM <=0) and (tmpMDM >0):
+            PDM = 0
+            MDM = tmpMDM
+            return PDM, MDM
+
+        if (tmpPDM <= 0) and (tmpMDM <=0):
+            return 0,0
+
+        if (tmpPDM >0) and (tmpMDM >0):
+            if tmpPDM >= tmpMDM:
+                return tmpPDM, 0
+            else:
+                return 0, tmpMDM
+
+    def getTrueRange(self,dicPreStockData,dicPostStockData):
+        tmp1 = abs(dicPostStockData['high'] - dicPostStockData['low'])
+        tmp2 = abs(dicPostStockData['high'] - dicPreStockData['close'])
+        tmp3 = abs(dicPostStockData['low'] - dicPreStockData['close'])
+        return max(tmp1,tmp2,tmp3)
+
+    def getDirectionalIndicator(PDM,MDM,TR):
+        PDI = PDM/TR
+        MDI = MDM/TR
+        return PDI,MDI
+
+
 
     def btn_Search(self,MainSymbol):
         # self.MainSymbol = list(self.StockCode.keys())[0]
@@ -131,20 +174,34 @@ class IndiWindow(QMainWindow):
             self.list = list(self.StockCode.keys())
             # print(self.StockCode)
             # print(self.list)
-            self.btn_Search(self.list[self.count])
+            # self.btn_Search(self.list[self.count])
+            self.btn_Search("000060")
 
         if TRName == "TR_SCHART" :
             # GetMultiRowCount()는 TR 결과값의 multi row 개수를 리턴합니다.
             nCnt = self.IndiTR.dynamicCall("GetMultiRowCount()")
             # 받을 열만큼 가거 데이터를 받도록 합니다.
-            columns = ['DATE', 'TIME', 'OPEN', 'HIGH', 'Low', 'Close', 'Price_ADJ', 'Vol_ADJ', 'Rock', 'Vol', 'Trading_Value']
+            DATA = {}
+            columns = ['date', 'time', 'open', 'high', 'low', 'close', 'price_adj', 'vol_adj', 'rock', 'vol', 'trading_value']
+            # for i in colums:
+            #     DATA[i]=[]
             body = []
-            for i in range(0, 14):
-                row = []
-                # 데이터 양식
-                DATA = {}
+            for i in range(0, 14):                
+                # # 데이터 받기
+                # DATA['date'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 0))  # 일자
+                # DATA['time'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 1))  # 시간
+                # DATA['open'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 2))  # 시가
+                # DATA['high'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 3))  # 고가
+                # DATA['low'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 4))  # 저가
+                # DATA['close'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 5))  # 종가
+                # DATA['price_adj'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 6))  # 주가수정계수
+                # DATA['vol_adj'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 7))  # 거래량 수정계수
+                # DATA['rock'].append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 8))  # 락구분
+                # DATA['vol']append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 9))  # 단위거래량
+                # DATA['trading_value'] = self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 10)  # 단위거래대금
 
                 # 데이터 받기
+                row = []
                 row.append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 0))  # 일자
                 row.append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 1))  # 시간
                 row.append(self.IndiTR.dynamicCall("GetMultiData(int, int)", i, 2)) # 시가
@@ -197,7 +254,7 @@ class IndiWindow(QMainWindow):
                 self.rqidD.__delitem__(rqid)
                 return 0
 
-            self.btn_Search(self.list[self.count])
+            # self.btn_Search(self.list[self.count])
 
         self.rqidD.__delitem__(rqid)
 
